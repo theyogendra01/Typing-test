@@ -1,0 +1,32 @@
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.controlButton {
+  background-color: transparent;
+  color: var(--text);
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border-radius: var(--border-radius);
+  border: 2px solid var(--accent);
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.controlButton:hover {
+  background-color: var(--accent);
+  color: white;
+}
+
+@media (max-width: 768px) {
+  .controlButton {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+}

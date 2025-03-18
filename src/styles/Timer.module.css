@@ -1,0 +1,39 @@
+.timer {
+  background-color: var(--secondary);
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--border-radius);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 100px;
+  margin-bottom: 0.5rem;
+}
+
+.time {
+  font-size: 1.25rem;
+  font-weight: bold;
+  font-family: 'Roboto Mono', monospace;
+}
+
+.label {
+  font-size: 0.7rem;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 768px) {
+  .timer {
+    width: 100%;
+    padding: 0.5rem 1rem;
+  }
+  
+  .time {
+    font-size: 1.125rem;
+  }
+  
+  .label {
+    font-size: 0.65rem;
+  }
+}
