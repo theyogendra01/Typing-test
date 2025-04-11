@@ -48,7 +48,9 @@
   gap: 1rem;
 }
 
-.retryButton, .shareButton {
+.retryButton,
+.shareButton,
+.newTestButton {
   background-color: transparent;
   color: var(--text);
   padding: 0.75rem 1.5rem;
@@ -62,26 +64,35 @@
   gap: 0.5rem;
 }
 
-.retryButton:hover, .shareButton:hover {
+.retryButton:hover,
+.shareButton:hover,
+.newTestButton:hover {
   background-color: var(--accent);
   color: white;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 768px) {
   .value {
     font-size: 2rem;
   }
-  
+
   .stats {
     flex-direction: column;
     gap: 1.5rem;
   }
-  
+
   .buttons {
     flex-direction: column;
     gap: 0.75rem;

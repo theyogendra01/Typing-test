@@ -16,15 +16,9 @@ const commonWords = [
 ];
 
 // Text generator with API and fallback
-async function generateText(count = 25, mode = 'words', timeLimit = 30) {
+async function generateText(count = 25, mode = 'words') {
   try {
-    if (mode === 'time') {
-      // For time mode, generate appropriate amount of text
-      // Average person types ~40 WPM, so we need enough words for the time period
-      const wordsNeeded = Math.ceil((timeLimit * 40) / 60) + 5; // Add small buffer
-      const shuffled = [...commonWords].sort(() => 0.5 - Math.random());
-      return shuffled.slice(0, wordsNeeded).join(' ');
-    } else if (mode === 'quote') {
+    if (mode === 'quote') {
       // For quote mode, use the quotable API
       const response = await fetch('https://api.quotable.io/random?minLength=100&maxLength=300');
       if (!response.ok) throw new Error('API request failed');
@@ -37,11 +31,10 @@ async function generateText(count = 25, mode = 'words', timeLimit = 30) {
     }
   } catch (error) {
     console.error('Error fetching text:', error);
-    
+
     // Fallback to local words
     const shuffled = [...commonWords].sort(() => 0.5 - Math.random());
-    const wordsToPick = mode === 'time' ? Math.ceil((timeLimit * 40) / 60) + 5 : count;
-    return shuffled.slice(0, wordsToPick).join(' ');
+    return shuffled.slice(0, count).join(' ');
   }
 }
 
@@ -53,8 +46,7 @@ function App() {
   const [endTime, setEndTime] = useState(null);
   const [isActive, setIsActive] = useState(false);
   const [results, setResults] = useState(null);
-  const [mode, setMode] = useState('words'); // 'words', 'time', 'quote'
-  const [timeLimit, setTimeLimit] = useState(30); // 15, 30, 60 seconds
+  const [mode, setMode] = useState('words'); // 'words', 'quote'
   const [wordCount, setWordCount] = useState(25); // 10, 25, 50, 100 words
   const [currentWPM, setCurrentWPM] = useState(0);
   const [currentAccuracy, setCurrentAccuracy] = useState(100);
@@ -66,38 +58,27 @@ function App() {
     setTheme(newTheme);
     document.body.className = newTheme + '-theme'; // Apply theme to body
   };
-  
+
   useEffect(() => {
     // Set initial theme on body
     document.body.className = theme + '-theme';
     generateNewTest();
   }, []);
-  
-  useEffect(() => {
-    generateNewTest();
-  }, [mode, timeLimit, wordCount]);
 
   useEffect(() => {
-    let timer;
-    if (isActive && mode === 'time' && startTime) {
-      timer = setTimeout(() => {
-        endTest();
-      }, timeLimit * 1000);
-    }
-    return () => clearTimeout(timer);
-  }, [isActive, mode, startTime, timeLimit]);
+    generateNewTest();
+  }, [mode, wordCount]);
 
   const generateNewTest = async () => {
     setIsLoading(true);
     try {
-      const newText = await generateText(wordCount, mode, timeLimit);
+      const newText = await generateText(wordCount, mode);
       setText(newText);
     } catch (error) {
       console.error("Failed to generate text:", error);
       // Use fallback text
       const shuffled = [...commonWords].sort(() => 0.5 - Math.random());
-      const wordsToPick = mode === 'time' ? Math.ceil((timeLimit * 40) / 60) + 5 : wordCount;
-      setText(shuffled.slice(0, wordsToPick).join(' '));
+      setText(shuffled.slice(0, wordCount).join(' '));
     } finally {
       resetTest();
       setIsLoading(false);
@@ -117,22 +98,22 @@ function App() {
 
   const endTest = () => {
     if (endTime) return; // Prevent multiple calls
-    
+
     const end = Date.now();
     setEndTime(end);
     setIsActive(false);
-    
+
     // Calculate final results
     const elapsedTime = end - startTime;
-    
+
     if (elapsedTime > 1000) {
       const wpm = calculateWPM(userInput, elapsedTime);
       const accuracy = calculateAccuracy(text.substring(0, userInput.length), userInput);
-      
-      setResults({ 
-        wpm: wpm, 
-        accuracy: accuracy, 
-        time: elapsedTime / 1000 
+
+      setResults({
+        wpm: wpm,
+        accuracy: accuracy,
+        time: elapsedTime / 1000
       });
     } else {
       // If test was too short, set default values
@@ -154,20 +135,20 @@ function App() {
       if (elapsedTime > 500) { // Only update stats after 0.5 seconds
         const wpm = calculateWPM(input, elapsedTime);
         const accuracy = calculateAccuracy(text.substring(0, input.length), input);
-        
+
         setCurrentWPM(wpm);
         setCurrentAccuracy(accuracy);
       }
     }
 
     // Check if test is complete for words mode
-    if ((mode === 'words' || mode === 'quote') && !endTime) {
+    if (!endTime) {
       const textWords = text.split(' ');
       const inputWords = input.split(' ');
-      
+
       // Check if all words are typed and the last word is complete
-      if (inputWords.length >= textWords.length && 
-          inputWords[textWords.length - 1] === textWords[textWords.length - 1]) {
+      if (inputWords.length >= textWords.length &&
+        inputWords[textWords.length - 1] === textWords[textWords.length - 1]) {
         endTest();
       }
     }
@@ -179,10 +160,10 @@ function App() {
 
   const shareResult = (platform) => {
     if (!results) return;
-    
+
     const shareText = `🎯 typyTest Results: ${results.wpm} WPM | ${results.accuracy}% Accuracy | ${results.time.toFixed(1)}s | Mode: ${mode}`;
     const url = window.location.href;
-    
+
     switch (platform) {
       case 'twitter':
         window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(url)}`, '_blank');
@@ -209,34 +190,31 @@ function App() {
           alert('Results copied to clipboard!');
         }
     }
-    
+
     setShowShareOptions(false);
   };
 
   return (
     <div className={`app ${theme}-theme`}>
       <div className="container">
-        <Header toggleTheme={toggleTheme} theme={theme} onShare={handleShare} />
-        
-        <Settings 
+        <Header toggleTheme={toggleTheme} theme={theme} onShare={handleShare} onNewTest={generateNewTest} />
+
+        <Settings
           mode={mode}
           setMode={setMode}
-          timeLimit={timeLimit}
-          setTimeLimit={setTimeLimit}
           wordCount={wordCount}
           setWordCount={setWordCount}
-          resetTest={generateNewTest}
+          resetTest={resetTest}
         />
-        
+
         <div className="stats-container">
-          <Timer 
-            isActive={isActive} 
-            startTime={startTime} 
+          <Timer
+            isActive={isActive}
+            startTime={startTime}
             endTime={endTime}
             mode={mode}
-            timeLimit={timeLimit}
           />
-          
+
           {isActive && (
             <div className="live-stats">
               <div className="stat">
@@ -250,14 +228,14 @@ function App() {
             </div>
           )}
         </div>
-        
+
         <div className="typing-area" onClick={() => document.querySelector('input').focus()}>
           {isLoading ? (
             <div className="loading">Loading text...</div>
           ) : (
             <>
               <TextDisplay text={text} userInput={userInput} />
-              <TypingInput 
+              <TypingInput
                 value={userInput}
                 onChange={handleInputChange}
                 disabled={!!endTime}
@@ -265,23 +243,24 @@ function App() {
             </>
           )}
         </div>
-        
+
         {!results && !isLoading && (
-          <TestControls 
+          <TestControls
             onRestart={resetTest}
             onNewTest={generateNewTest}
           />
         )}
-        
+
         {results && (
-          <Results 
-            results={results} 
+          <Results
+            results={results}
             resetTest={resetTest}
             onShare={handleShare}
+            onNewTest={generateNewTest}
             mode={mode}
           />
         )}
-        
+
         {showShareOptions && (
           <div className="share-overlay">
             <div className="share-modal">
@@ -289,10 +268,10 @@ function App() {
               <div className="share-buttons">
                 <button className="share-button twitter" onClick={() => shareResult('twitter')}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 4.01C21 4.5 20.02 4.69 19 4.82C20.07 4.19 20.76 3.14 21.1 1.92C20.08 2.52 18.94 2.98 17.71 3.21C16.33 1.63 14.23 1.24 12.35 2.09C10.46 2.95 9.28 4.89 9.5 6.9C6.55 6.75 3.78 5.11 1.89 2.6C0.39 5.15 1.12 8.32 3.5 9.72C2.62 9.7 1.76 9.47 1 9.05C1 9.06 1 9.08 1 9.09C1 11.43 2.7 13.42 4.97 13.87C4.15 14.09 3.29 14.1 2.46 13.9C3.06 15.88 4.88 17.22 7 17.26C5.3 18.61 3.17 19.32 1 19.32C0.67 19.32 0.33 19.3 0 19.26C2.2 20.68 4.77 21.4 7.39 21.4C16.26 21.4 21.11 14.16 21.11 7.89C21.11 7.72 21.11 7.56 21.1 7.4C22.11 6.7 23 5.81 23.74 4.78L22 4.01Z"/>
+                    <path d="M22 4.01C21 4.5 20.02 4.69 19 4.82C20.07 4.19 20.76 3.14 21.1 1.92C20.08 2.52 18.94 2.98 17.71 3.21C16.33 1.63 14.23 1.24 12.35 2.09C10.46 2.95 9.28 4.89 9.5 6.9C6.55 6.75 3.78 5.11 1.89 2.6C0.39 5.15 1.12 8.32 3.5 9.72C2.62 9.7 1.76 9.47 1 9.05C1 9.06 1 9.08 1 9.09C1 11.43 2.37 13.42 4.36 13.97C3.5 14.2 2.58 14.2 1.7 13.97C2.2 15.91 3.97 17.32 6.06 17.38C4.36 18.73 2.22 19.35 0 19.05C2.11 20.42 4.61 21.19 7.28 21.19C16.05 21.19 20.84 13.84 20.84 7.46C20.84 7.25 20.84 7.04 20.83 6.83C21.86 6.11 22.74 5.21 23.44 4.17L22 4.01Z" />
                   </svg>
                 </button>
-                
+
                 <button className="share-button linkedin" onClick={() => shareResult('linkedin')}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
@@ -300,16 +279,16 @@ function App() {
                     <circle cx="4" cy="4" r="2"></circle>
                   </svg>
                 </button>
-                
+
                 <button className="share-button whatsapp" onClick={() => shareResult('whatsapp')}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
                   </svg>
                 </button>
-                
+
                 <button className="share-button copy" onClick={() => shareResult('copy')}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M16 1H4C2.9 1 2 1.9 2 3V17H4V3H16V1ZM19 5H8C6.9 5 6 5.9 6 7V21C6 22.1 6.9 23 8 23H19C20.1 23 21 22.1 21 21V7C21 5.9 20.1 5 19 5ZM19 21H8V7H19V21Z"/>
+                    <path d="M16 1H4C2.9 1 2 1.9 2 3V17H4V3H16V1ZM19 5H8C6.9 5 6 5.9 6 7V21C6 22.1 6.9 23 8 23H19C20.1 23 21 22.1 21 21V7C21 5.9 20.1 5 19 5ZM19 21H8V7H19V21Z" />
                   </svg>
                 </button>
               </div>

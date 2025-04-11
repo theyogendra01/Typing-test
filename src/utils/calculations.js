@@ -12,16 +12,17 @@ export function calculateWPM(text, timeInMs) {
 }
 
 export function calculateAccuracy(originalText, typedText) {
-    if (!typedText || typedText.length === 0) return 0;
+    if (!typedText || typedText.length === 0) return 100; // Return 100% when nothing is typed yet
 
     let correctChars = 0;
-    const totalChars = Math.min(typedText.length, originalText.length);
+    const typedLength = typedText.length;
 
-    for (let i = 0; i < totalChars; i++) {
+    // Only compare up to what has been typed
+    for (let i = 0; i < typedLength; i++) {
         if (originalText[i] === typedText[i]) {
             correctChars++;
         }
     }
 
-    return Math.round((correctChars / totalChars) * 100);
+    return Math.round((correctChars / typedLength) * 100);
 }
